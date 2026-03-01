@@ -1,0 +1,125 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Glass Effect Utility Classes */
+@layer components {
+  .glass {
+    @apply bg-white/10 border border-white/20 shadow-lg;
+    backdrop-filter: blur(24px);
+  }
+
+  .glass-dark {
+    @apply bg-neutral-900/25 border border-white/20 shadow-lg;
+    backdrop-filter: blur(24px);
+  }
+
+  .glass-md {
+    @apply bg-white/10 border border-white/20 shadow-lg;
+    backdrop-filter: blur(16px);
+  }
+
+  /* Card Container */
+  .card {
+    @apply glass rounded-xl p-4 sm:p-6;
+  }
+
+  .card-dark {
+    @apply glass-dark rounded-xl p-4 sm:p-6;
+  }
+
+  /* Button Base Styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply min-h-11 px-4 py-2.5;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-md hover:shadow-lg;
+  }
+
+  .btn-secondary {
+    @apply btn bg-neutral-200 text-neutral-900 hover:bg-neutral-300 active:bg-neutral-400;
+  }
+
+  .btn-tertiary {
+    @apply btn bg-transparent text-primary-600 hover:bg-primary-100 active:bg-primary-200;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800;
+  }
+
+  /* Status Chips */
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption-sm font-medium;
+  }
+
+  .chip-success {
+    @apply chip bg-success-100 text-success-700;
+  }
+
+  .chip-warning {
+    @apply chip bg-warning-100 text-warning-700;
+  }
+
+  .chip-danger {
+    @apply chip bg-danger-100 text-danger-700;
+  }
+
+  .chip-info {
+    @apply chip bg-info-100 text-info-700;
+  }
+
+  .chip-live {
+    @apply chip bg-gradient-to-r from-danger-100 to-danger-50 text-danger-700 animate-pulse-subtle;
+  }
+
+  /* Input Focus */
+  .input-focus {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* Smooth Scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Tap Highlight (Mobile) */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
+      padding-top: max(0px, env(safe-area-inset-top));
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 75%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
