@@ -33,12 +33,14 @@ export async function POST(request: NextRequest) {
       room,
       passengerCount,
       cardNumber,
+      expiryDate,
       bonusAmount,
     } = body as {
       userId?: string
       room?: string
       passengerCount?: number
       cardNumber?: string
+      expiryDate?: string
       bonusAmount?: number
     }
 
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'room, passengerCount, cardNumber are required' }, { status: 400 })
     }
 
-    const computedBonus = bonusAmount ?? passengerCount * 7.5
+    const computedBonus = bonusAmount ?? 3.0
 
     const voucher = await prisma.voucher.create({
       data: {
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
         room,
         passengerCount,
         cardNumber,
+        expiryDate,
         bonusAmount: computedBonus,
         status: 'ACCEPTED',
       },

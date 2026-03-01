@@ -204,6 +204,7 @@ model Voucher {
   cardNumber String // masked: ****1234
   room      String   @db.VarChar(10)
   passengerCount Int
+  expiryDate String? // Card expiry date (MM/YY format)
   
   // Bonus tracking
   bonusAmount Float

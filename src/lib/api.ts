@@ -62,6 +62,7 @@ export interface VoucherDto {
   cardNumber: string
   room: string
   passengerCount: number
+  expiryDate?: string | null
   bonusAmount: number
   status: 'ACCEPTED' | 'DECLINED' | 'PENDING_REVIEW'
   declineReason: string | null

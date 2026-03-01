@@ -30,7 +30,8 @@ export const StatusCard: React.FC<StatusCardProps> = ({
   const [showClockOut, setShowClockOut] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedShift, setSelectedShift] = useState<string>('');
-  const [tips, setTips] = useState<string>('0');
+  const [tips, setTips] = useState<string>('');
+  const [displayTips, setDisplayTips] = useState<string>('$0.00');
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -53,7 +54,18 @@ export const StatusCard: React.FC<StatusCardProps> = ({
   const handleClockOutConfirm = () => {
     onClockOut(parseFloat(tips) || 0);
     setShowClockOut(false);
-    setTips('0');
+    setTips('');
+    setDisplayTips('$0.00');
+  };
+
+  const handleTipsChange = (value: string) => {
+    // Remove non-numeric characters
+    const numericValue = value.replace(/[^0-9.]/g, '');
+    setTips(numericValue);
+    
+    // Format for display
+    const amount = parseFloat(numericValue) || 0;
+    setDisplayTips(`$${amount.toFixed(2)}`);
   };
 
   // Calculate duration if clocked in
@@ -119,27 +131,38 @@ export const StatusCard: React.FC<StatusCardProps> = ({
         {/* Primary CTA */}
         <Button
           variant={isClockedIn ? 'danger' : 'primary'}
-          className="w-full"
+          className="w-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           onClick={() =>
             isClockedIn ? setShowClockOut(true) : setShowClockIn(true)
           }
           isLoading={isLoading}
         >
-          <Clock className="w-4 h-4" />
+          <Clock className={`w-5 h-5 ${isClockedIn ? 'animate-pulse' : ''}`} />
           {isClockedIn ? 'Clock Out' : 'Clock In'}
         </Button>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" size="sm" className="w-full">
-            <Plus className="w-4 h-4" />
-            Add Tip
-          </Button>
-          <Button variant="secondary" size="sm" className="w-full">
-            <Zap className="w-4 h-4" />
-            Pay Estimate
-          </Button>
-        </div>
+        {/* Quick Actions - Show add tip OR pay estimate depending on clock state */}
+        {isClockedIn && (
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="w-full hover:bg-primary-50 hover:text-primary-700 transition-colors"
+              onClick={() => setShowClockOut(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Add Tip
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="w-full hover:bg-success-50 hover:text-success-700 transition-colors"
+            >
+              <Zap className="w-4 h-4" />
+              Current
+            </Button>
+          </div>
+        )}
       </GlassCard>
 
       {/* Clock In Sheet */}
@@ -218,16 +241,26 @@ export const StatusCard: React.FC<StatusCardProps> = ({
               Tips (Optional)
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-3 text-neutral-600">$</span>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={tips}
-                onChange={(e) => setTips(e.target.value)}
-                className="w-full pl-7 pr-4 py-3 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="0.00"
+                type="text"
+                inputMode="decimal"
+                placeholder="$0.00"
+                value={displayTips}
+                onFocus={() => {
+                  if (parseFloat(tips) === 0) {
+                    setDisplayTips('');
+                  }
+                }}
+                onBlur={() => {
+                  const amount = parseFloat(tips) || 0;
+                  setDisplayTips(`$${amount.toFixed(2)}`);
+                }}
+                onChange={(e) => handleTipsChange(e.target.value)}
+                className="w-full px-4 py-3 bg-neutral-100 rounded-lg text-body-lg font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500 text-center"
               />
+              <p className="text-caption-sm text-neutral-500 mt-1 text-center">
+                Enter amount in dollars (e.g., 25.50)
+              </p>
             </div>
           </div>
 

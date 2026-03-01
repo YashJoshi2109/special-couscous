@@ -90,6 +90,20 @@ export default function EmployeeHome() {
     return sum + (session.basePayAmount ?? 0) + (session.tipsAmount ?? 0) + (session.bonusAmount ?? 0);
   }, 0);
 
+  const weekBasePay = weekSessions.reduce((sum, session) => sum + (session.basePayAmount ?? 0), 0);
+  const weekTips = weekSessions.reduce((sum, session) => sum + (session.tipsAmount ?? 0), 0);
+  const weekBonuses = weekSessions.reduce((sum, session) => sum + (session.bonusAmount ?? 0), 0);
+
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthSessions = sessions.filter((session) => new Date(session.clockInTime) >= monthStart);
+  const monthEarnings = monthSessions.reduce((sum, session) => {
+    return sum + (session.basePayAmount ?? 0) + (session.tipsAmount ?? 0) + (session.bonusAmount ?? 0);
+  }, 0);
+  const monthHours = monthSessions.reduce((sum, session) => {
+    if (!session.clockOutTime) return sum;
+    return sum + (new Date(session.clockOutTime).getTime() - new Date(session.clockInTime).getTime()) / (1000 * 60 * 60);
+  }, 0);
+
   const handleClockIn = async (role: string, shiftType: string) => {
     await clockInMutation.mutateAsync({
       role: role as 'FRONT_DESK' | 'SHUTTLE',
@@ -214,13 +228,49 @@ export default function EmployeeHome() {
             <div className="border-t border-white/20" />
             <div className="flex justify-between items-center py-2">
               <span className="text-body-md text-neutral-600">
-                Estimated Gross
+                Base Pay
               </span>
-              <span className="text-heading-md font-semibold text-primary-600">
+              <span className="text-body-md font-semibold text-neutral-900">
+                {formatCurrency(weekBasePay)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-body-md text-neutral-600">
+                Tips
+              </span>
+              <span className="text-body-md font-semibold text-success-600">
+                +{formatCurrency(weekTips)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-body-md text-neutral-600">
+                Bonuses
+              </span>
+              <span className="text-body-md font-semibold text-success-600">
+                +{formatCurrency(weekBonuses)}
+              </span>
+            </div>
+            <div className="border-t border-white/20" />
+            <div className="flex justify-between items-center py-2">
+              <span className="text-body-md font-semibold text-neutral-900">
+                Total Earnings
+              </span>
+              <span className="text-heading-md font-bold text-primary-600">
                 {formatCurrency(weekEarnings)}
               </span>
             </div>
           </GlassCard>
+        </div>
+
+        {/* Monthly Summary */}
+        <div className="mb-6">
+          <h2 className="text-heading-md font-semibold text-neutral-900 mb-3">
+            This Month
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            <KPITile label="Hours" value={`${monthHours.toFixed(1)}h`} />
+            <KPITile label="Earnings" value={formatCurrency(monthEarnings)} />
+          </div>
         </div>
       </div>
 

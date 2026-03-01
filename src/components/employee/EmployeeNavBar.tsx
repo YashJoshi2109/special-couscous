@@ -11,11 +11,13 @@ import {
   CreditCard,
   Ticket,
   Settings,
+  Clock,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/employee', icon: Home, label: 'Home' },
   { href: '/employee/timesheet', icon: Calendar, label: 'Timesheet' },
+  { href: '/employee/schedule', icon: Clock, label: 'Schedule' },
   { href: '/employee/pay', icon: CreditCard, label: 'Pay' },
   { href: '/employee/vouchers', icon: Ticket, label: 'Vouchers' },
   { href: '/employee/settings', icon: Settings, label: 'Settings' },
