@@ -1,58 +1,33 @@
 'use client';
 
 import React from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { GlassCard, KPITile } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency, formatTime, formatDate } from '@/lib/utils';
-import { Users, Clock, Ticket, DollarSign, AlertCircle } from 'lucide-react';
-
-interface LiveEmployee {
-  id: string;
-  name: string;
-  role: string;
-  shift: string;
-  clockInTime: Date;
-  duration: number; // minutes
-  hasConflict?: boolean;
-}
-
-const mockLiveEmployees: LiveEmployee[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    role: 'FRONT_DESK',
-    shift: 'MORNING',
-    clockInTime: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    duration: 180,
-  },
-  {
-    id: '2',
-    name: 'Mike Chen',
-    role: 'SHUTTLE',
-    shift: 'SHUTTLE',
-    clockInTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    duration: 120,
-  },
-  {
-    id: '3',
-    name: 'Lisa Rodriguez',
-    role: 'FRONT_DESK',
-    shift: 'EVENING',
-    clockInTime: new Date(Date.now() - 1 * 60 * 60 * 1000),
-    duration: 60,
-    hasConflict: true,
-  },
-];
-
-const mockStats = {
-  clockedInNow: mockLiveEmployees.length,
-  totalHoursToday: 45.5,
-  voucherScansToday: 12,
-  estimatedPayrollPeriod: 8475.5,
-};
+import { formatCurrency, formatTime } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export default function AdminOverviewPage() {
+  const queryClient = useQueryClient();
+  const dashboardQuery = useQuery({
+    queryKey: ['admin-dashboard'],
+    queryFn: () => api.admin.dashboard(),
+    refetchInterval: 15000,
+  });
+
+  const clockOutMutation = useMutation({
+    mutationFn: (payload: { sessionId: string }) => api.sessions.clockOut(payload.sessionId, { tips: 0 }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+  });
+
+  const stats = dashboardQuery.data?.stats;
+  const liveEmployees = dashboardQuery.data?.liveEmployees ?? [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
@@ -72,25 +47,25 @@ export default function AdminOverviewPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <KPITile
             label="Clocked In Now"
-            value={mockStats.clockedInNow}
+            value={stats?.clockedInNow ?? 0}
             change="+2 vs yesterday"
             trend="up"
           />
           <KPITile
             label="Hours Today"
-            value={`${mockStats.totalHoursToday}h`}
+            value={`${stats?.totalHoursToday ?? 0}h`}
             change="+8.5h vs yesterday"
             trend="up"
           />
           <KPITile
             label="Voucher Scans"
-            value={mockStats.voucherScansToday}
+            value={stats?.voucherScansToday ?? 0}
             change="+3 vs yesterday"
             trend="up"
           />
           <KPITile
             label="Est. Payroll"
-            value={formatCurrency(mockStats.estimatedPayrollPeriod)}
+            value={formatCurrency(stats?.estimatedPayrollPeriod ?? 0)}
             change="In progress"
             trend="neutral"
           />
@@ -103,14 +78,14 @@ export default function AdminOverviewPage() {
               Live Presence
             </h2>
             <span className="text-caption-md text-neutral-600">
-              {mockLiveEmployees.length} clocked in
+              {liveEmployees.length} clocked in
             </span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {mockLiveEmployees.map((emp) => {
-              const hours = Math.floor(emp.duration / 60);
-              const mins = emp.duration % 60;
+            {liveEmployees.map((emp) => {
+              const hours = Math.floor(emp.durationMinutes / 60);
+              const mins = emp.durationMinutes % 60;
               return (
                 <GlassCard
                   key={emp.id}
@@ -138,7 +113,7 @@ export default function AdminOverviewPage() {
                         <strong>Shift:</strong> {emp.shift}
                       </p>
                       <p className="text-caption-sm text-neutral-600">
-                        <strong>Since:</strong> {formatTime(emp.clockInTime)}
+                        <strong>Since:</strong> {formatTime(new Date(emp.clockInTime))}
                       </p>
                     </div>
                   </div>
@@ -148,17 +123,17 @@ export default function AdminOverviewPage() {
                       {hours}h {mins}m
                     </p>
                     <div className="space-y-2">
-                      <Button variant="secondary" size="sm" className="w-full">
-                        Edit Time
-                      </Button>
-                      <Button variant="tertiary" size="sm" className="w-full">
-                        Details
+                      <Button variant="secondary" size="sm" className="w-full" onClick={() => clockOutMutation.mutate({ sessionId: emp.sessionId })} isLoading={clockOutMutation.isPending}>
+                        Force Clock Out
                       </Button>
                     </div>
                   </div>
                 </GlassCard>
               );
             })}
+            {dashboardQuery.isLoading && (
+              <GlassCard className="p-6 text-center text-neutral-600">Loading live presence...</GlassCard>
+            )}
           </div>
         </div>
 

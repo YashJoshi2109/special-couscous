@@ -17,7 +17,7 @@ HotelShift Pro is a modern PWA designed for hospitality staff and managers. It p
 ### Tech Stack
 
 ```
-Frontend: Next.js 15 + React 19 + TypeScript + Tailwind CSS
+Frontend: Next.js 14 + React 18 + TypeScript + Tailwind CSS
 Backend: Next.js API Routes + Prisma ORM
 Database: PostgreSQL
 Styling: Tailwind CSS with custom Glass UI tokens
@@ -61,7 +61,7 @@ src/
 │       └── AdminSidebar.tsx     # Admin navigation
 │
 ├── lib/
-│   ├── api.ts                   # Axios API client
+│   ├── api.ts                   # Typed API client (fetch + cookies)
 │   ├── queryClient.ts           # TanStack Query setup
 │   └── utils.ts                 # Helper functions
 │
@@ -128,19 +128,31 @@ npm run db:push
 
 # Start dev server
 npm run dev
+
+# Start realtime socket server (new terminal)
+npm run realtime
 ```
 
-Visit `http://localhost:3000` to access the application.
+Visit `http://localhost:3001` (or the port shown in terminal) to access the application.
+
+### Realtime Layer
+
+HotelShift Pro now includes a dedicated Socket.IO realtime server for live updates across employee and admin screens.
+
+- Realtime server: `scripts/realtime-server.js`
+- Default realtime URL: `http://localhost:4001`
+- Server emits are triggered from API mutations (`sessions`, `vouchers`, `admin/settings`)
+- Client subscriptions are mounted globally in `EmployeeNavBar` and `AdminSidebar`
 
 ### Demo Credentials
 
 **Employee:**
-- Email: `demo@hotelshift.app`
-- Password: `password`
+- Email: `john@hotelshift.com`
+- Password: `employee123`
 
 **Admin:**
-- Email: `admin@hotelshift.app`
-- Password: `password`
+- Email: `admin@hotelshift.com`
+- Password: `admin123`
 
 ## 📱 Employee Features
 
@@ -234,21 +246,25 @@ GET /api/auth/me
 
 ### Employee Routes
 ```
-POST /api/sessions/clock-in
-POST /api/sessions/clock-out
-GET /api/sessions?start=&end=
-GET /api/pay-estimate?period=
-POST /api/vouchers/scan
+POST /api/sessions
+PATCH /api/sessions/:id
+GET /api/sessions?startDate=&endDate=
+GET /api/pay/estimate
+POST /api/vouchers
 GET /api/vouchers
+PATCH /api/vouchers/:id
 ```
 
 ### Admin Routes
 ```
-GET /api/admin/overview
+GET /api/admin/dashboard
 GET /api/admin/employees
 GET /api/admin/time-logs
 GET /api/admin/payroll
-GET /api/admin/audit-log
+GET /api/admin/vouchers
+GET /api/admin/audit
+GET /api/admin/settings
+PATCH /api/admin/settings
 ```
 
 ## 🗄️ Database Schema

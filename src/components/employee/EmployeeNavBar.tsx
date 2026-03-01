@@ -1,7 +1,10 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useRealtimeSubscriptions } from '@/hooks/useRealtimeSubscriptions';
 import {
   Home,
   Calendar,
@@ -20,6 +23,7 @@ const navItems = [
 
 export const EmployeeNavBar: React.FC = () => {
   const pathname = usePathname();
+  useRealtimeSubscriptions('employee');
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 safe-area-inset-bottom">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GlassCard, KPITile, StatusChip } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
 import { BottomSheet } from '@/components/ui/Button';
@@ -31,6 +31,15 @@ export const StatusCard: React.FC<StatusCardProps> = ({
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedShift, setSelectedShift] = useState<string>('');
   const [tips, setTips] = useState<string>('0');
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!isClockedIn || !clockInTime) return;
+    const timer = window.setInterval(() => {
+      setTick((value) => value + 1);
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [isClockedIn, clockInTime]);
 
   const handleClockInConfirm = () => {
     if (selectedRole && selectedShift) {
@@ -51,7 +60,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
   let duration = '';
   if (isClockedIn && clockInTime) {
     const minutes = Math.floor(
-      (Date.now() - clockInTime.getTime()) / (1000 * 60)
+      (Date.now() + tick * 0 - clockInTime.getTime()) / (1000 * 60)
     );
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;

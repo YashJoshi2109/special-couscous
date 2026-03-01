@@ -1,55 +1,131 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmployeeNavBar } from '@/components/employee/EmployeeNavBar';
 import { StatusCard } from '@/components/employee/StatusCard';
 import { GlassCard, KPITile, EmptyState } from '@/components/ui/GlassUI';
 import { formatCurrency } from '@/lib/utils';
-import { Calendar } from 'lucide-react';
+import { formatTime } from '@/lib/utils';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function EmployeeHome() {
-  const [isClockedIn, setIsClockedIn] = useState(false);
-  const [clockInTime, setClockInTime] = useState<Date | undefined>();
-  const [activeRole, setActiveRole] = useState<string | undefined>();
-  const [activeShiftType, setActiveShiftType] = useState<string | undefined>();
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const meQuery = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: () => api.auth.me(),
+  });
+
+  const sessionsQuery = useQuery({
+    queryKey: ['sessions', 'employee'],
+    queryFn: () => api.sessions.list(),
+    enabled: !!meQuery.data?.user,
+    refetchInterval: 15000,
+  });
+
+  const clockInMutation = useMutation({
+    mutationFn: (payload: { role: 'FRONT_DESK' | 'SHUTTLE'; shiftType: 'MORNING' | 'EVENING' | 'NIGHT' | 'SHUTTLE' }) =>
+      api.sessions.clockIn(payload),
+    onSuccess: () => {
+      toast.success('Clocked in successfully');
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['pay-estimate'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const clockOutMutation = useMutation({
+    mutationFn: (payload: { sessionId: string; tips?: number }) =>
+      api.sessions.clockOut(payload.sessionId, { tips: payload.tips }),
+    onSuccess: () => {
+      toast.success('Clocked out successfully');
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['pay-estimate'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const sessions = sessionsQuery.data?.sessions ?? [];
+  const activeSession = sessions.find((session) => session.status === 'OPEN' && !session.clockOutTime);
+
+  const today = new Date();
+  const todaysSessions = sessions.filter((session) => {
+    const date = new Date(session.clockInTime);
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  });
+
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  const weekSessions = sessions.filter((session) => new Date(session.clockInTime) >= weekStart);
+
+  const todayHours = todaysSessions.reduce((sum, session) => {
+    if (!session.clockOutTime) return sum;
+    return sum + (new Date(session.clockOutTime).getTime() - new Date(session.clockInTime).getTime()) / (1000 * 60 * 60);
+  }, 0);
+
+  const todayEarnings = todaysSessions.reduce((sum, session) => {
+    return sum + (session.basePayAmount ?? 0) + (session.tipsAmount ?? 0) + (session.bonusAmount ?? 0);
+  }, 0);
+
+  const weekHours = weekSessions.reduce((sum, session) => {
+    if (!session.clockOutTime) return sum;
+    return sum + (new Date(session.clockOutTime).getTime() - new Date(session.clockInTime).getTime()) / (1000 * 60 * 60);
+  }, 0);
+
+  const weekEarnings = weekSessions.reduce((sum, session) => {
+    return sum + (session.basePayAmount ?? 0) + (session.tipsAmount ?? 0) + (session.bonusAmount ?? 0);
+  }, 0);
 
   const handleClockIn = async (role: string, shiftType: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      setIsClockedIn(true);
-      setClockInTime(new Date());
-      setActiveRole(role);
-      setActiveShiftType(shiftType);
-      toast.success(`Clocked in as ${role}`);
-    } catch (error) {
-      toast.error('Failed to clock in');
-    } finally {
-      setIsLoading(false);
-    }
+    await clockInMutation.mutateAsync({
+      role: role as 'FRONT_DESK' | 'SHUTTLE',
+      shiftType: shiftType as 'MORNING' | 'EVENING' | 'NIGHT' | 'SHUTTLE',
+    });
   };
 
   const handleClockOut = async (tips?: number) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      setIsClockedIn(false);
-      setClockInTime(undefined);
-      setActiveRole(undefined);
-      setActiveShiftType(undefined);
-      toast.success('Clocked out successfully');
-    } catch (error) {
-      toast.error('Failed to clock out');
-    } finally {
-      setIsLoading(false);
+    if (!activeSession) {
+      toast.error('No active session found');
+      return;
     }
+    await clockOutMutation.mutateAsync({ sessionId: activeSession.id, tips });
   };
+
+  if (meQuery.isLoading || sessionsQuery.isLoading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
+        <div className="max-w-lg mx-auto px-4 py-6">
+          <GlassCard className="p-6 text-center text-neutral-600">Loading dashboard...</GlassCard>
+        </div>
+        <EmployeeNavBar />
+      </main>
+    );
+  }
+
+  if (!meQuery.data?.user) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
+        <div className="max-w-lg mx-auto px-4 py-6">
+          <GlassCard className="p-6 text-center text-neutral-600">You are not signed in. Please log in to continue.</GlassCard>
+        </div>
+        <EmployeeNavBar />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
@@ -71,13 +147,13 @@ export default function EmployeeHome() {
         {/* Status Card */}
         <div className="mb-6">
           <StatusCard
-            isClockedIn={isClockedIn}
-            activeRole={activeRole}
-            activeShiftType={activeShiftType}
-            clockInTime={clockInTime}
+            isClockedIn={!!activeSession}
+            activeRole={activeSession?.role}
+            activeShiftType={activeSession?.shiftType}
+            clockInTime={activeSession ? new Date(activeSession.clockInTime) : undefined}
             onClockIn={handleClockIn}
             onClockOut={handleClockOut}
-            isLoading={isLoading}
+            isLoading={clockInMutation.isPending || clockOutMutation.isPending}
           />
         </div>
 
@@ -86,17 +162,39 @@ export default function EmployeeHome() {
           <h2 className="text-heading-md font-semibold text-neutral-900 mb-3">
             Today's Sessions
           </h2>
-          <EmptyState
-            icon="📭"
-            title="No sessions yet"
-            description="Clock in to start tracking your shift"
-          />
+          {todaysSessions.length === 0 ? (
+            <EmptyState
+              icon="📭"
+              title="No sessions yet"
+              description="Clock in to start tracking your shift"
+            />
+          ) : (
+            <div className="space-y-2">
+              {todaysSessions.map((session) => (
+                <GlassCard key={session.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-body-md font-semibold text-neutral-900">
+                        {session.role === 'FRONT_DESK' ? 'Front Desk' : 'Shuttle'} · {session.shiftType}
+                      </p>
+                      <p className="text-caption-sm text-neutral-600">
+                        {formatTime(new Date(session.clockInTime))} - {session.clockOutTime ? formatTime(new Date(session.clockOutTime)) : 'In progress'}
+                      </p>
+                    </div>
+                    <p className="text-body-md font-semibold text-primary-600">
+                      {formatCurrency((session.basePayAmount ?? 0) + (session.tipsAmount ?? 0) + (session.bonusAmount ?? 0))}
+                    </p>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Today Summary */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <KPITile label="Hours Today" value="0h" />
-          <KPITile label="Earnings Today" value={formatCurrency(0)} />
+          <KPITile label="Hours Today" value={`${todayHours.toFixed(1)}h`} />
+          <KPITile label="Earnings Today" value={formatCurrency(todayEarnings)} />
         </div>
 
         {/* Weekly Summary */}
@@ -110,7 +208,7 @@ export default function EmployeeHome() {
                 Total Hours
               </span>
               <span className="text-heading-md font-semibold text-neutral-900">
-                0h
+                {weekHours.toFixed(1)}h
               </span>
             </div>
             <div className="border-t border-white/20" />
@@ -119,7 +217,7 @@ export default function EmployeeHome() {
                 Estimated Gross
               </span>
               <span className="text-heading-md font-semibold text-primary-600">
-                {formatCurrency(0)}
+                {formatCurrency(weekEarnings)}
               </span>
             </div>
           </GlassCard>

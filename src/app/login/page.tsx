@@ -5,25 +5,41 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const router = useRouter();
+  const [email, setEmail] = useState('john@hotelshift.com');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await api.auth.login({ email, password, role: 'EMPLOYEE' });
       toast.success('Login successful');
-      // TODO: Redirect to employee home
+      router.push('/employee');
     } catch (error) {
-      toast.error('Login failed');
+      toast.error((error as Error).message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    try {
+      await api.auth.seed();
+      toast.success('Seeded demo users. Use john@hotelshift.com / employee123');
+      setPassword('employee123');
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsSeeding(false);
     }
   };
 
@@ -101,8 +117,13 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-caption-sm text-neutral-600 mt-6">
-          Demo credentials: demo@hotelshift.app / password
+          Demo credentials: john@hotelshift.com / employee123
         </p>
+        <div className="mt-3">
+          <Button variant="tertiary" className="w-full" onClick={handleSeed} isLoading={isSeeding}>
+            Seed Demo Data
+          </Button>
+        </div>
       </div>
     </main>
   );

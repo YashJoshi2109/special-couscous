@@ -1,16 +1,36 @@
 'use client';
 
 import React from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { EmployeeNavBar } from '@/components/employee/EmployeeNavBar';
 import { GlassCard } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
 import { LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const meQuery = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: () => api.auth.me(),
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: () => api.auth.logout(),
+    onSuccess: () => {
+      toast.success('Logged out successfully');
+      router.push('/login');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const user = meQuery.data?.user;
+  const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'HS';
+
   const handleLogout = () => {
-    toast.success('Logged out successfully');
-    // TODO: Implement logout logic
+    logoutMutation.mutate();
   };
 
   return (
@@ -30,14 +50,14 @@ export default function SettingsPage() {
           </h2>
           <GlassCard className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-primary-500 text-white flex items-center justify-center text-heading-md font-bold">
-              JD
+              {initials}
             </div>
             <div>
               <p className="text-body-md font-semibold text-neutral-900">
-                John Doe
+                {user ? `${user.firstName} ${user.lastName}` : 'Unknown User'}
               </p>
               <p className="text-caption-sm text-neutral-600">
-                john@hotelshift.app
+                {user?.email ?? 'Not signed in'}
               </p>
             </div>
           </GlassCard>
@@ -77,6 +97,7 @@ export default function SettingsPage() {
             variant="danger"
             className="w-full"
             onClick={handleLogout}
+            isLoading={logoutMutation.isPending}
           >
             <LogOut className="w-4 h-4" />
             Sign Out

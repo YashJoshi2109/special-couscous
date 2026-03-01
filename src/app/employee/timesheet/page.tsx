@@ -1,41 +1,35 @@
 'use client';
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { EmployeeNavBar } from '@/components/employee/EmployeeNavBar';
 import { TimelineCalendar } from '@/components/employee/TimelineCalendar';
 import { GlassCard } from '@/components/ui/GlassUI';
 import { EmployeeSession } from '@/types';
 import { Drawer } from '@/components/ui/Button';
 import { formatTime, formatDuration, formatCurrency } from '@/lib/utils';
-import { Calendar } from 'lucide-react';
-
-// Mock data for demo
-const mockSessions: EmployeeSession[] = [
-  {
-    id: '1',
-    role: 'FRONT_DESK',
-    shiftType: 'MORNING',
-    clockInTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    clockOutTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000),
-    status: 'COMPLETED',
-    basePayAmount: 120,
-    tipsAmount: 15,
-  },
-  {
-    id: '2',
-    role: 'SHUTTLE',
-    shiftType: 'SHUTTLE',
-    clockInTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
-    clockOutTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000),
-    status: 'COMPLETED',
-    basePayAmount: 90,
-    tipsAmount: 25,
-    bonusAmount: 10,
-  },
-];
+import { api } from '@/lib/api';
 
 export default function TimesheetPage() {
   const [selectedSession, setSelectedSession] = React.useState<EmployeeSession | null>(null);
+
+  const sessionsQuery = useQuery({
+    queryKey: ['sessions', 'employee'],
+    queryFn: () => api.sessions.list(),
+  });
+
+  const sessions: EmployeeSession[] = (sessionsQuery.data?.sessions ?? []).map((session) => ({
+    id: session.id,
+    role: session.role,
+    shiftType: session.shiftType,
+    clockInTime: new Date(session.clockInTime),
+    clockOutTime: session.clockOutTime ? new Date(session.clockOutTime) : undefined,
+    duration: undefined,
+    basePayAmount: session.basePayAmount ?? undefined,
+    tipsAmount: session.tipsAmount ?? undefined,
+    bonusAmount: session.bonusAmount ?? undefined,
+    status: session.status,
+  }));
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
@@ -51,10 +45,14 @@ export default function TimesheetPage() {
         </div>
 
         {/* Calendar */}
-        <TimelineCalendar
-          sessions={mockSessions}
-          onSessionTap={setSelectedSession}
-        />
+        {sessionsQuery.isLoading ? (
+          <GlassCard className="p-6 text-center text-neutral-600">Loading timesheet...</GlassCard>
+        ) : (
+          <TimelineCalendar
+            sessions={sessions}
+            onSessionTap={setSelectedSession}
+          />
+        )}
       </div>
 
       {/* Session Detail Drawer */}

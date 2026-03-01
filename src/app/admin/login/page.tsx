@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('admin@hotelshift.app');
+  const router = useRouter();
+  const [email, setEmail] = useState('admin@hotelshift.com');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,12 +19,11 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await api.auth.login({ email, password, role: 'ADMIN' });
       toast.success('Admin login successful');
-      // TODO: Redirect to admin dashboard
+      router.push('/admin');
     } catch (error) {
-      toast.error('Login failed');
+      toast.error((error as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +101,7 @@ export default function AdminLoginPage() {
 
         {/* Footer */}
         <p className="text-center text-caption-sm text-neutral-600 mt-6">
-          Demo: admin@hotelshift.app / password
+          Demo: admin@hotelshift.com / admin123
         </p>
       </div>
     </main>

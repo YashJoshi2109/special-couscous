@@ -1,19 +1,22 @@
 'use client';
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { GlassCard } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
+import { formatCurrency } from '@/lib/utils';
 import { Search, Plus } from 'lucide-react';
-
-const mockEmployees = [
-  { id: '1', name: 'Sarah Johnson', role: 'FRONT_DESK', hourlyRate: 15.5, status: 'ACTIVE' },
-  { id: '2', name: 'Mike Chen', role: 'SHUTTLE', hourlyRate: 16.0, status: 'ACTIVE' },
-  { id: '3', name: 'Lisa Rodriguez', role: 'FRONT_DESK', hourlyRate: 15.5, status: 'ACTIVE' },
-];
+import { api } from '@/lib/api';
 
 export default function EmployeesPage() {
   const [search, setSearch] = React.useState('');
+  const employeesQuery = useQuery({
+    queryKey: ['admin-employees', search],
+    queryFn: () => api.admin.employees(search),
+  });
+
+  const employees = employeesQuery.data?.employees ?? [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
@@ -73,16 +76,16 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody>
-              {mockEmployees.map((emp) => (
+              {employees.map((emp) => (
                 <tr key={emp.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                   <td className="px-6 py-4 text-body-md text-neutral-900">
                     {emp.name}
                   </td>
                   <td className="px-6 py-4 text-body-md text-neutral-600">
-                    {emp.role}
+                    {emp.roles.join(', ') || '-'}
                   </td>
                   <td className="px-6 py-4 text-body-md text-neutral-600">
-                    ${emp.hourlyRate.toFixed(2)}/h
+                    {formatCurrency(emp.hourlyRate)}/h
                   </td>
                   <td className="px-6 py-4">
                     <span className="chip-success">{emp.status}</span>
@@ -94,6 +97,13 @@ export default function EmployeesPage() {
                   </td>
                 </tr>
               ))}
+              {!employeesQuery.isLoading && employees.length === 0 && (
+                <tr>
+                  <td className="px-6 py-8 text-body-md text-neutral-500" colSpan={5}>
+                    No employees found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </GlassCard>

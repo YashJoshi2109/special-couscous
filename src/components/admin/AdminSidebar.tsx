@@ -1,7 +1,10 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useRealtimeSubscriptions } from '@/hooks/useRealtimeSubscriptions';
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +28,7 @@ const adminNavItems = [
 
 export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
+  useRealtimeSubscriptions('admin');
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-neutral-200 overflow-y-auto">
