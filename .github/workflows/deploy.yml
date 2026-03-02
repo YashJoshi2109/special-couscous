@@ -42,16 +42,26 @@ jobs:
           echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" >> .env
           echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
 
+      - name: Prepare remote directory
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo mkdir -p ${{ env.DEPLOY_DIR }}
+            sudo chown -R ${{ env.DEPLOY_USER }}:${{ env.DEPLOY_USER }} ${{ env.DEPLOY_DIR }}
+            sudo chmod -R 755 ${{ env.DEPLOY_DIR }}
+
       - name: Deploy to EC2
         uses: appleboy/scp-action@master
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }} # If your key has a passphrase
           source: "."
           target: ${{ env.DEPLOY_DIR }}
-          rm: true
+          rm: false
 
       - name: Execute remote commands
         uses: appleboy/ssh-action@master
@@ -59,8 +69,7 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }} # If your key has a passphrase
           script: |
             cd ${{ env.DEPLOY_DIR }}
-            docker-compose down
+            docker-compose down || true
             docker-compose up -d --build
