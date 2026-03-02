@@ -18,6 +18,8 @@ interface EmployeeFormData {
   department: string;
   hourlyRate: number;
   roles: string[];
+  username: string;
+  password: string;
 }
 
 export default function EmployeesPage() {
@@ -32,6 +34,8 @@ export default function EmployeesPage() {
     department: '',
     hourlyRate: 15,
     roles: ['FRONT_DESK'],
+    username: '',
+    password: '',
   });
 
   const queryClient = useQueryClient();
@@ -81,6 +85,8 @@ export default function EmployeesPage() {
       department: '',
       hourlyRate: 15,
       roles: ['FRONT_DESK'],
+      username: '',
+      password: '',
     });
     setEditingEmployee(null);
   };
@@ -100,6 +106,8 @@ export default function EmployeesPage() {
       department: employee.department,
       hourlyRate: employee.hourlyRate,
       roles: employee.roles,
+      username: employee.username || '',
+      password: '',
     });
     setShowModal(true);
   };
@@ -132,7 +140,7 @@ export default function EmployeesPage() {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
 
-      <main className="ml-64 p-8">
+      <main className="ml-64 p-8 overflow-y-auto max-h-screen pb-20">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -296,6 +304,38 @@ export default function EmployeesPage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="john@example.com"
+                  />
+                </div>
+              )}
+
+              {!editingEmployee && (
+                <div>
+                  <label className="block text-body-sm font-medium text-neutral-900 mb-2">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="johndoe"
+                  />
+                </div>
+              )}
+
+              {!editingEmployee && (
+                <div>
+                  <label className="block text-body-sm font-medium text-neutral-900 mb-2">
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="••••••••"
                   />
                 </div>
               )}

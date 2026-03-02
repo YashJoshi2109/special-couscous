@@ -9,6 +9,7 @@ import { QRScanner } from '@/components/QRScanner';
 import { formatTime, formatCurrency, maskCardNumber } from '@/lib/utils';
 import { Scan, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { SafeAreaInset } from '@/components/MobileLayout';
 import { api } from '@/lib/api';
 
 interface VoucherItem {
@@ -183,7 +184,10 @@ export default function VouchersPage() {
     .reduce((sum, voucher) => sum + voucher.bonusAmount, 0);
 
   return (
-    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+    <>
+      <EmployeeNavBar />
+      <SafeAreaInset edge="top"></SafeAreaInset>
+      <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24" style={{ minHeight: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-display-md font-bold text-neutral-900">Vouchers</h1>
@@ -472,5 +476,6 @@ export default function VouchersPage() {
 
       <EmployeeNavBar />
     </main>
+    </>
   );
 }

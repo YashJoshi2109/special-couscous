@@ -7,6 +7,7 @@ import { GlassCard } from '@/components/ui/GlassUI';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 import { Download } from 'lucide-react';
+import { SafeAreaInset } from '@/components/MobileLayout';
 import { api } from '@/lib/api';
 
 type Period = 'thisWeek' | 'lastWeek' | 'monthly';
@@ -34,8 +35,10 @@ export default function PayPage() {
   ];
 
   return (
-    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-      <div className="max-w-lg mx-auto px-4 py-6">
+    <>
+      <EmployeeNavBar />
+      <SafeAreaInset edge="top"></SafeAreaInset>
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-display-md font-bold text-neutral-900">Estimated Paystub</h1>
@@ -280,6 +283,6 @@ export default function PayPage() {
       </div>
 
       <EmployeeNavBar />
-    </main>
+    </>
   );
 }

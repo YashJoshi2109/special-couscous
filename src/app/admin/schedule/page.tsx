@@ -26,7 +26,7 @@ export default function AdminSchedulePage() {
     <div className="flex min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
 
-      <main className="flex-1 ml-64 px-8 py-6">
+      <main className="flex-1 ml-64 px-8 py-6 overflow-y-auto max-h-screen pb-20">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">

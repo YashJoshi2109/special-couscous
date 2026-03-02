@@ -162,7 +162,7 @@ export default function EmployeeHome() {
 
   return (
     <main 
-      className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32 pt-[max(env(safe-area-inset-top),0px)]" 
+      className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24 pt-[max(env(safe-area-inset-top),0px)]" 
       style={{ 
         height: '100vh', 
         overflowY: 'auto', 

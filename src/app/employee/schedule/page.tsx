@@ -8,6 +8,7 @@ import { formatTime } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { SafeAreaInset } from '@/components/MobileLayout';
 
 interface ScheduleShift {
   id: string;
@@ -100,7 +101,10 @@ export default function SchedulePage() {
   }, 0);
 
   return (
-    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+    <>
+      <EmployeeNavBar />
+      <SafeAreaInset edge="top"></SafeAreaInset>
+      <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24" style={{ minHeight: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-full mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
@@ -211,5 +215,6 @@ export default function SchedulePage() {
 
       <EmployeeNavBar />
     </main>
+    </>
   );
 }

@@ -18,7 +18,7 @@ export default function PayrollPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
-      <main className="ml-64 p-8">
+      <main className="ml-64 p-8 overflow-y-auto max-h-screen pb-20">
         <h1 className="text-display-md font-bold text-neutral-900">Payroll</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 mb-6">
           <KPITile label="Base" value={formatCurrency(data?.totals.totalBasePay ?? 0)} />

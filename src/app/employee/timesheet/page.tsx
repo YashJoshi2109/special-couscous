@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { formatTime, formatDuration, formatCurrency } from '@/lib/utils';
 import { EmployeeSession } from '@/types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { SafeAreaInset } from '@/components/MobileLayout';
 import { api } from '@/lib/api';
 
 export default function TimesheetPage() {
@@ -88,7 +89,10 @@ export default function TimesheetPage() {
   };
 
   return (
-    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+    <>
+      <EmployeeNavBar />
+      <SafeAreaInset edge="top"></SafeAreaInset>
+      <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24" style={{ minHeight: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-full mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -462,5 +466,6 @@ export default function TimesheetPage() {
 
       <EmployeeNavBar />
     </main>
+    </>
   );
 }

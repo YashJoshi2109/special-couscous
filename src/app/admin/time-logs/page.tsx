@@ -18,7 +18,7 @@ export default function TimeLogs() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
-      <main className="ml-64 p-8">
+      <main className="ml-64 p-8 overflow-y-auto max-h-screen pb-20">
         <h1 className="text-display-md font-bold text-neutral-900">Time Logs</h1>
         <GlassCard className="mt-6 p-0 overflow-hidden">
           <table className="w-full text-sm">

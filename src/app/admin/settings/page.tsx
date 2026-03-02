@@ -45,7 +45,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
-      <main className="ml-64 p-8">
+      <main className="ml-64 p-8 overflow-y-auto max-h-screen pb-20">
         <h1 className="text-display-md font-bold text-neutral-900">Settings</h1>
         <GlassCard className="mt-6 p-6 space-y-4">
           <div className="flex items-center justify-between">
