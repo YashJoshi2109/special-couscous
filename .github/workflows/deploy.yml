@@ -23,24 +23,26 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "NODE_ENV=production" > .env
-          echo "POSTGRES_DB=neondb" >> .env
-          echo "POSTGRES_USER=neondb_owner" >> .env
-          echo "POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DB_PORT=5432" >> .env
-          echo "DB_NAME=neondb" >> .env
-          echo "DB_USER=neondb_owner" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DATABASE_URL=postgresql://neondb_owner:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}/neondb?sslmode=require" >> .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-          echo "JWT_EXPIRATION=12h" >> .env
-          echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> .env
-          echo "ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}" >> .env
-          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
-          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
-          echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" >> .env
-          echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
+          cat <<EOF > .env
+          NODE_ENV=production
+          POSTGRES_DB=neondb
+          POSTGRES_USER=neondb_owner
+          POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=5432
+          DB_NAME=neondb
+          DB_USER=neondb_owner
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DATABASE_URL="postgresql://neondb_owner:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}/neondb?sslmode=require"
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION=12h
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+          ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
+          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+          DOMAIN=${{ secrets.DOMAIN }}
+          EOF
 
       - name: Prepare remote directory
         uses: appleboy/ssh-action@master
