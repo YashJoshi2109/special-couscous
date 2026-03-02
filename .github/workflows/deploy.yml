@@ -47,6 +47,7 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }} # If your key has a passphrase
           source: "."
           target: ${{ env.DEPLOY_DIR }}
           rm: true
@@ -57,4 +58,8 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }} # If your key has a passphrase
           script: |
+            cd ${{ env.DEPLOY_DIR }}
+            docker-compose down
+            docker-compose up -d --build
