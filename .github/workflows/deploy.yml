@@ -76,10 +76,27 @@ jobs:
           timeout: 40m
           command_timeout: 40m
           script: |
+            echo "--- Pre-Deployment System Check ---"
+            df -h /
+            free -m
+            
+            echo "--- Resource Cleanup ---"
+            # Cleanup Docker: prune dangling images, stopped containers, and unused volumes
+            docker system prune -af --volumes
+            # Cleanup System: apt package cache and temp files
+            sudo apt-get clean
+            sudo rm -rf /tmp/*
+            
+            echo "--- Deploying Application ---"
             sudo mkdir -p ${{ env.DEPLOY_DIR }}
             sudo cp -r ~/hotelshift-pro/* ${{ env.DEPLOY_DIR }}/
             sudo chown -R ${{ env.DEPLOY_USER }}:${{ env.DEPLOY_USER }} ${{ env.DEPLOY_DIR }}
+            
             cd ${{ env.DEPLOY_DIR }}
             docker-compose down || true
             docker buildx prune -f
             docker-compose up -d --build --remove-orphans
+            
+            echo "--- Post-Deployment Verification ---"
+            df -h /
+            docker ps
