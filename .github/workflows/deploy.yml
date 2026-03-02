@@ -15,6 +15,7 @@ jobs:
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
+    environment: Deploy env
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
