@@ -64,6 +64,7 @@ jobs:
           source: "."
           target: ${{ env.DEPLOY_DIR }}
           rm: false
+          timeout: 10m
 
       - name: Execute remote commands
         uses: appleboy/ssh-action@master
@@ -71,7 +72,10 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 25m
+          command_timeout: 25m
           script: |
             cd ${{ env.DEPLOY_DIR }}
             docker-compose down || true
-            docker-compose up -d --build
+            docker buildx prune -f
+            docker-compose up -d --build --remove-orphans
