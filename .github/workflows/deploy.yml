@@ -50,10 +50,11 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 10m
+          command_timeout: 10m
           script: |
-            sudo mkdir -p ${{ env.DEPLOY_DIR }}
-            sudo chown -R ${{ env.DEPLOY_USER }}:${{ env.DEPLOY_USER }} ${{ env.DEPLOY_DIR }}
-            sudo chmod -R 755 ${{ env.DEPLOY_DIR }}
+            mkdir -p ~/hotelshift-pro
+            sudo chown -R ${{ env.DEPLOY_USER }}:${{ env.DEPLOY_USER }} ~/hotelshift-pro
 
       - name: Deploy to EC2
         uses: appleboy/scp-action@master
@@ -62,9 +63,9 @@ jobs:
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "."
-          target: ${{ env.DEPLOY_DIR }}
+          target: "~/hotelshift-pro"
           rm: false
-          timeout: 10m
+          timeout: 20m
 
       - name: Execute remote commands
         uses: appleboy/ssh-action@master
@@ -72,9 +73,12 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          timeout: 25m
-          command_timeout: 25m
+          timeout: 40m
+          command_timeout: 40m
           script: |
+            sudo mkdir -p ${{ env.DEPLOY_DIR }}
+            sudo cp -r ~/hotelshift-pro/* ${{ env.DEPLOY_DIR }}/
+            sudo chown -R ${{ env.DEPLOY_USER }}:${{ env.DEPLOY_USER }} ${{ env.DEPLOY_DIR }}
             cd ${{ env.DEPLOY_DIR }}
             docker-compose down || true
             docker buildx prune -f
