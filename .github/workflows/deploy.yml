@@ -58,6 +58,3 @@ jobs:
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ${{ env.DEPLOY_DIR }}
-            docker-compose down
-            docker-compose up -d --build
