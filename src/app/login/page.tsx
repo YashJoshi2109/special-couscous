@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('john@hotelshift.com');
+  const [username, setUsername] = useState('john.rivera');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -20,7 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await api.auth.login({ email, password, role: 'EMPLOYEE' });
+      await api.auth.login({ username, password, role: 'EMPLOYEE' });
       toast.success('Login successful');
       router.push('/employee');
     } catch (error) {
@@ -34,7 +34,7 @@ export default function LoginPage() {
     setIsSeeding(true);
     try {
       await api.auth.seed();
-      toast.success('Seeded demo users. Use john@hotelshift.com / employee123');
+      toast.success('Seeded demo users. Use john.rivera / employee123');
       setPassword('employee123');
     } catch (error) {
       toast.error((error as Error).message);
@@ -59,17 +59,18 @@ export default function LoginPage() {
         {/* Login Card */}
         <GlassCard variant="elevated" className="p-8">
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email */}
+            {/* Username */}
             <div>
               <label className="block text-body-md font-medium text-neutral-900 mb-2">
-                Email
+                Username
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-neutral-900"
-                placeholder="john@example.com"
+                placeholder="john.rivera"
+                autoComplete="username"
                 required
               />
             </div>

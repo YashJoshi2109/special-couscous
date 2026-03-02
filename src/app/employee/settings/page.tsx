@@ -21,7 +21,7 @@ export default function SettingsPage() {
     mutationFn: () => api.auth.logout(),
     onSuccess: () => {
       toast.success('Logged out successfully');
-      router.push('/login');
+      router.push('/');
     },
     onError: (error: Error) => toast.error(error.message),
   });

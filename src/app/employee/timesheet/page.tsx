@@ -88,7 +88,7 @@ export default function TimesheetPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
+    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-full mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -141,6 +141,118 @@ export default function TimesheetPage() {
                 )}h
               </p>
             </div>
+          </div>
+        </GlassCard>
+
+        {/* Session Log Table */}
+        <GlassCard variant="elevated" className="mb-6 overflow-hidden">
+          <div className="p-6 border-b border-neutral-200">
+            <h2 className="text-heading-lg font-semibold text-neutral-900">
+              Session Log — {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </h2>
+            <p className="text-caption-md text-neutral-600 mt-1">
+              All clock-in / clock-out records
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-neutral-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">DATE</th>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">SHIFT</th>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">CLOCK IN</th>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">CLOCK OUT</th>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">HOURS</th>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">ROLE</th>
+                  <th className="px-6 py-3 text-left text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">BONUS</th>
+                  <th className="px-6 py-3 text-right text-caption-sm font-medium text-neutral-600 uppercase tracking-wider">EARNINGS</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-neutral-200">
+                {sessionsQuery.isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center text-neutral-500">
+                      Loading sessions...
+                    </td>
+                  </tr>
+                ) : sessions.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center text-neutral-500">
+                      No sessions found
+                    </td>
+                  </tr>
+                ) : (
+                  sessions.map((session) => {
+                    const shiftColors: Record<string, string> = {
+                      MORNING: 'text-blue-600 bg-blue-50',
+                      EVENING: 'text-purple-600 bg-purple-50',
+                      NIGHT: 'text-teal-600 bg-teal-50',
+                      SHUTTLE: 'text-amber-600 bg-amber-50',
+                    };
+                    const roleColors: Record<string, string> = {
+                      FRONT_DESK: 'text-blue-600 bg-blue-50',
+                      SHUTTLE: 'text-amber-600 bg-amber-50',
+                    };
+                    const hours = session.clockOutTime
+                      ? ((session.clockOutTime.getTime() - session.clockInTime.getTime()) / (1000 * 60 * 60)).toFixed(2)
+                      : '0.00';
+                    const earnings = (session.basePayAmount || 0) + (session.tipsAmount || 0) + (session.bonusAmount || 0);
+                    const isToday = session.clockInTime.toDateString() === new Date().toDateString();
+                    
+                    return (
+                      <tr
+                        key={session.id}
+                        onClick={() => setSelectedSession(session)}
+                        className="hover:bg-neutral-50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className={`text-body-sm font-medium ${isToday ? 'text-primary-600' : 'text-neutral-900'}`}>
+                              {session.clockInTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                            {isToday && (
+                              <span className="text-caption-sm text-primary-600 font-medium">Today</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 rounded text-caption-sm font-medium ${shiftColors[session.shiftType]}`}>
+                            {session.shiftType}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-body-sm text-neutral-900">
+                          {formatTime(session.clockInTime)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {session.clockOutTime ? (
+                            <span className="text-body-sm text-neutral-900">{formatTime(session.clockOutTime)}</span>
+                          ) : (
+                            <span className="text-body-sm text-success-600 font-medium">In Progress</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-body-sm text-neutral-900 font-medium">
+                          {hours}h
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 rounded text-caption-sm font-medium ${roleColors[session.role]}`}>
+                            {session.role === 'FRONT_DESK' ? 'Front Desk' : 'Shuttle Driver'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-body-sm text-success-600 font-medium">
+                          {session.bonusAmount ? formatCurrency(session.bonusAmount) : '$0'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-body-sm font-semibold text-neutral-900">
+                            {formatCurrency(earnings)}+
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </GlassCard>
 

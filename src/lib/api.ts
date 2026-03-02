@@ -1,4 +1,4 @@
-type HttpMethod = 'GET' | 'POST' | 'PATCH'
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
 async function request<T>(path: string, method: HttpMethod = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, {
@@ -71,7 +71,7 @@ export interface VoucherDto {
 
 export const api = {
   auth: {
-    login: (payload: { email: string; password: string; role?: 'EMPLOYEE' | 'ADMIN' }) =>
+    login: (payload: { email?: string; username?: string; password: string; role?: 'EMPLOYEE' | 'ADMIN' }) =>
       request<{ success: boolean; user: AuthUser }>('/auth/login', 'POST', payload),
     logout: () => request<{ success: boolean }>('/auth/logout', 'POST'),
     me: () => request<{ user: AuthUser | null }>('/auth/me'),
@@ -109,6 +109,10 @@ export const api = {
     }) => request<{ voucher: VoucherDto }>('/vouchers', 'POST', payload),
     updateStatus: (voucherId: string, payload: { action: 'DECLINE' | 'ACCEPT'; declineReason?: string }) =>
       request<{ voucher: VoucherDto }>(`/vouchers/${voucherId}`, 'PATCH', payload),
+    share: (voucherId: string, sharedWithUserIds: string[]) =>
+      request<{ success: boolean; voucher: { id: string; sharedWith: string[] } }>(`/vouchers/${voucherId}/share`, 'PATCH', { sharedWithUserIds }),
+    getShares: (voucherId: string) =>
+      request<{ sharedWith: string[] }>(`/vouchers/${voucherId}/share`),
   },
 
   pay: {
@@ -162,6 +166,54 @@ export const api = {
           roles: string[]
         }>
       }>(`/admin/employees${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+    createEmployee: (payload: {
+      email: string
+      firstName: string
+      lastName: string
+      employeeId: string
+      department?: string
+      hourlyRate?: number
+      roles?: string[]
+      password?: string
+    }) =>
+      request<{
+        employee: {
+          id: string
+          name: string
+          email: string
+          employeeId: string
+          department: string
+          hourlyRate: number
+          status: string
+          roles: string[]
+        }
+      }>('/admin/employees', 'POST', payload),
+    updateEmployee: (payload: {
+      id: string
+      firstName?: string
+      lastName?: string
+      department?: string
+      hourlyRate?: number
+      roles?: string[]
+      status?: string
+    }) =>
+      request<{
+        employee: {
+          id: string
+          name: string
+          email: string
+          employeeId: string
+          department: string
+          hourlyRate: number
+          status: string
+          roles: string[]
+        }
+      }>('/admin/employees', 'PATCH', payload),
+    deleteEmployee: (id: string) =>
+      request<{
+        message: string
+        employee: { id: string; name: string; status: string }
+      }>(`/admin/employees?id=${id}`, 'DELETE'),
     timeLogs: () =>
       request<{
         timeLogs: Array<{

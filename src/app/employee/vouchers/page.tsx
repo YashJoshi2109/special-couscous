@@ -36,12 +36,17 @@ export default function VouchersPage() {
   const [selectedVoucher, setSelectedVoucher] = useState<VoucherItem | null>(null);
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
   const [declineReason, setDeclineReason] = useState('');
-  const [shareEmail, setShareEmail] = useState('');
-  const [shareViewDuration, setShareViewDuration] = useState('7'); // days
+  const [sharedUserIds, setSharedUserIds] = useState<Set<string>>(new Set());
 
   const vouchersQuery = useQuery({
     queryKey: ['vouchers', 'employee'],
     queryFn: () => api.vouchers.list(),
+  });
+
+  const employeesQuery = useQuery({
+    queryKey: ['admin-employees'],
+    queryFn: () => api.admin.employees(),
+    enabled: showShareForm,
   });
 
   const createVoucherMutation = useMutation({
@@ -123,22 +128,34 @@ export default function VouchersPage() {
 
   const handleShareVoucher = (voucherId: string) => {
     setSelectedVoucherId(voucherId);
+    setSharedUserIds(new Set());
     setShowShareForm(true);
   };
 
+  const toggleUserShare = (userId: string) => {
+    setSharedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
   const confirmShare = async () => {
-    if (!selectedVoucherId || !shareEmail) {
-      toast.error('Please enter an email address');
+    if (!selectedVoucherId || sharedUserIds.size === 0) {
+      toast.error('Please select at least one employee to share with');
       return;
     }
 
     try {
-      // TODO: Implement share endpoint
-      toast.success('Voucher access shared successfully');
+      await api.vouchers.share(selectedVoucherId, Array.from(sharedUserIds));
+      toast.success(`Voucher shared with ${sharedUserIds.size} employee(s)`);
       setShowShareForm(false);
       setSelectedVoucherId(null);
-      setShareEmail('');
-      setShareViewDuration('7');
+      setSharedUserIds(new Set());
     } catch (error) {
       toast.error('Failed to share voucher');
     }
@@ -166,7 +183,7 @@ export default function VouchersPage() {
     .reduce((sum, voucher) => sum + voucher.bonusAmount, 0);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24 overflow-y-auto">
+    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-display-md font-bold text-neutral-900">Vouchers</h1>
@@ -292,39 +309,59 @@ export default function VouchersPage() {
         </div>
       </BottomSheet>
 
-      <BottomSheet isOpen={showShareForm} onClose={() => setShowShareForm(false)} title="Share Voucher Access">
-        <div className="flex flex-col gap-6">
-          <div>
-            <label className="block text-body-md font-medium text-neutral-900 dark:text-white mb-2">Employee Email</label>
-            <input
-              type="email"
-              value={shareEmail}
-              onChange={(event) => setShareEmail(event.target.value)}
-              placeholder="colleague@hotelshift.com"
-              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-neutral-800 dark:text-white"
-            />
-          </div>
+      <BottomSheet isOpen={showShareForm} onClose={() => setShowShareForm(false)} title="Share Voucher">
+        <div className="flex flex-col gap-4">
+          <p className="text-body-sm text-neutral-600">
+            Select employees to share this voucher with. They will be able to view the details.
+          </p>
 
-          <div>
-            <label className="block text-body-md font-medium text-neutral-900 dark:text-white mb-2">View Duration (Days)</label>
-            <select
-              value={shareViewDuration}
-              onChange={(event) => setShareViewDuration(event.target.value)}
-              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-neutral-800 dark:text-white"
+          {employeesQuery.isLoading ? (
+            <div className="py-8 text-center text-neutral-600">Loading employees...</div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {employeesQuery.data?.employees.map((employee) => (
+                <div
+                  key={employee.id}
+                  className="flex items-center justify-between p-4 glass rounded-lg hover:bg-neutral-50 transition-colors cursor-pointer"
+                  onClick={() => toggleUserShare(employee.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold">
+                      {employee.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <p className="text-body-md font-semibold text-neutral-900">{employee.name}</p>
+                      <p className="text-caption-sm text-neutral-600">{employee.department || employee.employeeId}</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-block w-12 h-6">
+                    <input
+                      type="checkbox"
+                      checked={sharedUserIds.has(employee.id)}
+                      onChange={() => toggleUserShare(employee.id)}
+                      className="sr-only peer"
+                    />
+                    <span className="absolute inset-0 bg-neutral-300 peer-checked:bg-primary-600 rounded-full transition-colors cursor-pointer"></span>
+                    <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-4 border-t border-neutral-200">
+            <p className="text-caption-sm text-neutral-600 mb-3">
+              {sharedUserIds.size} employee(s) selected
+            </p>
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={confirmShare}
+              disabled={sharedUserIds.size === 0}
             >
-              <option value="1">1 day</option>
-              <option value="7">7 days</option>
-              <option value="30">30 days</option>
-            </select>
+              Share with {sharedUserIds.size} Employee{sharedUserIds.size !== 1 ? 's' : ''}
+            </Button>
           </div>
-
-          <Button
-            variant="primary"
-            className="w-full"
-            onClick={confirmShare}
-          >
-            Share Access
-          </Button>
         </div>
       </BottomSheet>
 

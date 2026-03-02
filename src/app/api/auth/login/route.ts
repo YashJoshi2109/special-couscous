@@ -5,18 +5,26 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, role } = body as {
+    const { email, username, password, role } = body as {
       email?: string
+      username?: string
       password?: string
       role?: 'EMPLOYEE' | 'ADMIN'
     }
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+    const identifier = username || email
+    if (!identifier || !password) {
+      return NextResponse.json({ error: 'Username/email and password are required' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Try to find user by username or email
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { email: identifier }
+        ]
+      },
       include: { employee: true, admin: true },
     })
 

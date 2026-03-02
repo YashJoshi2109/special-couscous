@@ -10,6 +10,7 @@ export async function POST() {
       where: { email: 'admin@hotelshift.com' },
       update: {},
       create: {
+        username: 'admin',
         email: 'admin@hotelshift.com',
         firstName: 'System',
         lastName: 'Admin',
@@ -30,9 +31,10 @@ export async function POST() {
       where: { email: 'john@hotelshift.com' },
       update: {},
       create: {
+        username: 'john.rivera',
         email: 'john@hotelshift.com',
         firstName: 'John',
-        lastName: 'Doe',
+        lastName: 'Rivera',
         password: employeePassword,
         role: 'EMPLOYEE',
         status: 'ACTIVE',

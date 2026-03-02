@@ -28,7 +28,7 @@ export const EmployeeNavBar: React.FC = () => {
   useRealtimeSubscriptions('employee');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-neutral-200 shadow-lg" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0px)' }}>
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/');
@@ -37,14 +37,17 @@ export const EmployeeNavBar: React.FC = () => {
               key={href}
               href={href}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 py-3 px-4 min-h-[60px] transition-colors',
+                'flex flex-col items-center justify-center gap-1 py-2 px-2 min-w-[60px] min-h-[56px] transition-all duration-200 relative',
                 isActive
-                  ? 'text-primary-600 border-t-2 border-primary-600'
-                  : 'text-neutral-600 hover:text-neutral-900'
+                  ? 'text-primary-600'
+                  : 'text-neutral-500 hover:text-neutral-700 active:scale-95'
               )}
             >
-              <Icon className="w-5 h-5" />
-              <span className="text-caption-sm font-medium">{label}</span>
+              {isActive && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary-600 rounded-full" />
+              )}
+              <Icon className={cn('w-6 h-6 transition-transform', isActive && 'scale-110')} />
+              <span className="text-[10px] font-medium leading-tight">{label}</span>
             </Link>
           );
         })}

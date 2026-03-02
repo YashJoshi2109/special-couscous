@@ -100,7 +100,7 @@ export default function SchedulePage() {
   }, 0);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
+    <main className="bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32" style={{ minHeight: '100vh', height: '100vh', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-full mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">

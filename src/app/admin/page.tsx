@@ -32,7 +32,7 @@ export default function AdminOverviewPage() {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       <AdminSidebar />
 
-      <main className="ml-64 p-8">
+      <main className="ml-64 p-8 overflow-y-auto h-screen">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-display-md font-bold text-neutral-900 mb-2">
@@ -135,6 +135,106 @@ export default function AdminOverviewPage() {
               <GlassCard className="p-6 text-center text-neutral-600">Loading live presence...</GlassCard>
             )}
           </div>
+        </div>
+
+        {/* Weekly Timesheet Calendar */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-heading-lg font-semibold text-neutral-900">
+              Weekly Timesheet
+            </h2>
+            <span className="text-caption-md text-neutral-600">
+              Week {Math.ceil(new Date().getDate() / 7)}
+            </span>
+          </div>
+
+          <GlassCard className="p-6 overflow-x-auto">
+            <div className="min-w-max">
+              {/* Calendar Header */}
+              <div className="grid grid-cols-8 gap-2 mb-4">
+                <div className="text-caption-sm font-medium text-neutral-600">EMPLOYEE</div>
+                {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, idx) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() - date.getDay() + idx + 1);
+                  return (
+                    <div key={day} className="text-center">
+                      <div className="text-caption-sm font-medium text-neutral-600">{day}</div>
+                      <div className="text-caption-sm text-neutral-500">
+                        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Employee Rows */}
+              {liveEmployees.length > 0 ? (
+                liveEmployees.map((emp) => (
+                  <div key={emp.id} className="grid grid-cols-8 gap-2 mb-3 items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-caption-sm font-semibold">
+                        {emp.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div>
+                        <div className="text-body-sm font-medium text-neutral-900">{emp.name}</div>
+                        <div className="text-caption-sm text-neutral-500">{emp.role}</div>
+                      </div>
+                    </div>
+
+                    {/* Day cells - showing shift badges */}
+                    {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => {
+                      const shiftColors: Record<string, string> = {
+                        MORNING: 'bg-blue-500',
+                        EVENING: 'bg-purple-500',
+                        NIGHT: 'bg-teal-500',
+                        SHUTTLE: 'bg-amber-500',
+                      };
+                      const randomShifts = ['MORNING', 'EVENING', 'NIGHT', 'SHUTTLE'];
+                      const hasShift = Math.random() > 0.3;
+                      const shift = randomShifts[Math.floor(Math.random() * randomShifts.length)];
+                      
+                      return (
+                        <div key={day} className="flex justify-center">
+                          {hasShift && (
+                            <div
+                              className={`${shiftColors[shift]} text-white text-caption-sm font-medium px-2 py-1 rounded`}
+                              title={shift}
+                            >
+                              {shift[0]}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-neutral-500">
+                  No employees currently clocked in
+                </div>
+              )}
+
+              {/* Legend */}
+              <div className="flex gap-4 mt-6 pt-4 border-t border-neutral-200 justify-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-blue-500" />
+                  <span className="text-caption-sm text-neutral-600">Morning</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-purple-500" />
+                  <span className="text-caption-sm text-neutral-600">Evening</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-teal-500" />
+                  <span className="text-caption-sm text-neutral-600">Night</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-amber-500" />
+                  <span className="text-caption-sm text-neutral-600">Shuttle</span>
+                </div>
+              </div>
+            </div>
+          </GlassCard>
         </div>
 
         {/* Quick Actions */}

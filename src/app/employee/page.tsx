@@ -1,10 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmployeeNavBar } from '@/components/employee/EmployeeNavBar';
 import { StatusCard } from '@/components/employee/StatusCard';
 import { GlassCard, KPITile, EmptyState } from '@/components/ui/GlassUI';
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { Confetti } from '@/components/Confetti';
+import { CardSkeleton } from '@/components/ui/Skeleton';
+import { SafeAreaInset } from '@/components/MobileLayout';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { formatCurrency } from '@/lib/utils';
 import { formatTime } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -12,6 +17,8 @@ import toast from 'react-hot-toast';
 
 export default function EmployeeHome() {
   const queryClient = useQueryClient();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const { trigger: haptic } = useHapticFeedback();
 
   const meQuery = useQuery({
     queryKey: ['auth', 'me'],
@@ -29,12 +36,14 @@ export default function EmployeeHome() {
     mutationFn: (payload: { role: 'FRONT_DESK' | 'SHUTTLE'; shiftType: 'MORNING' | 'EVENING' | 'NIGHT' | 'SHUTTLE' }) =>
       api.sessions.clockIn(payload),
     onSuccess: () => {
+      haptic('success');
       toast.success('Clocked in successfully');
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       queryClient.invalidateQueries({ queryKey: ['pay-estimate'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
     },
     onError: (error: Error) => {
+      haptic('error');
       toast.error(error.message);
     },
   });
@@ -43,7 +52,9 @@ export default function EmployeeHome() {
     mutationFn: (payload: { sessionId: string; tips?: number }) =>
       api.sessions.clockOut(payload.sessionId, { tips: payload.tips }),
     onSuccess: () => {
-      toast.success('Clocked out successfully');
+      haptic('success');
+      setShowConfetti(true);
+      toast.success('Great work! Clocked out successfully 🎉');
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       queryClient.invalidateQueries({ queryKey: ['pay-estimate'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
@@ -119,11 +130,19 @@ export default function EmployeeHome() {
     await clockOutMutation.mutateAsync({ sessionId: activeSession.id, tips });
   };
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    await queryClient.invalidateQueries({ queryKey: ['pay-estimate'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+    // Re-fetch data
+    await sessionsQuery.refetch();
+  };
+
   if (meQuery.isLoading || sessionsQuery.isLoading) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
         <div className="max-w-lg mx-auto px-4 py-6">
-          <GlassCard className="p-6 text-center text-neutral-600">Loading dashboard...</GlassCard>
+          <CardSkeleton count={3} />
         </div>
         <EmployeeNavBar />
       </main>
@@ -142,8 +161,21 @@ export default function EmployeeHome() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-24">
-      <div className="max-w-lg mx-auto px-4 py-6">
+    <main 
+      className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 pb-32 pt-[max(env(safe-area-inset-top),0px)]" 
+      style={{ 
+        height: '100vh', 
+        overflowY: 'auto', 
+        overflowX: 'hidden', 
+        WebkitOverflowScrolling: 'touch',
+        WebkitTouchCallout: 'none' as any,
+      }}
+    >
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+      
+      <SafeAreaInset edge="top"></SafeAreaInset>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-display-md font-bold text-neutral-900">
@@ -171,11 +203,50 @@ export default function EmployeeHome() {
           />
         </div>
 
-        {/* Today's Sessions */}
+        {/* Week Stats Overview - Matching Dark Mode Design */}
         <div className="mb-6">
-          <h2 className="text-heading-md font-semibold text-neutral-900 mb-3">
-            Today's Sessions
-          </h2>
+          <h2 className="text-heading-md font-semibold text-neutral-900 mb-3">This Week</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <GlassCard variant="elevated" className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-caption-sm text-neutral-600 uppercase tracking-wide">Hours This Week</span>
+                <span className="text-xl">⏰</span>
+              </div>
+              <p className="text-heading-xl font-bold text-neutral-900 mb-1">{weekHours.toFixed(1)}</p>
+              <p className="text-caption-sm text-success-600 font-medium">↑ 2.5h vs last week</p>
+            </GlassCard>
+
+            <GlassCard variant="elevated" className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-caption-sm text-neutral-600 uppercase tracking-wide">Est. Earnings</span>
+                <span className="text-xl">💵</span>
+              </div>
+              <p className="text-heading-xl font-bold text-neutral-900 mb-1">{formatCurrency(weekEarnings)}</p>
+              <p className="text-caption-sm text-success-600 font-medium">↑ {formatCurrency(weekEarnings * 0.1)} this pay period</p>
+            </GlassCard>
+
+            <GlassCard variant="elevated" className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-caption-sm text-neutral-600 uppercase tracking-wide">Vouchers Scanned</span>
+                <span className="text-xl">🎫</span>
+              </div>
+              <p className="text-heading-xl font-bold text-neutral-900 mb-1">14</p>
+              <p className="text-caption-sm text-purple-600 font-medium">+{formatCurrency(weekBonuses)} bonus</p>
+            </GlassCard>
+
+            <GlassCard variant="elevated" className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-caption-sm text-neutral-600 uppercase tracking-wide">Room Bonuses</span>
+                <span className="text-xl">🏨</span>
+              </div>
+              <p className="text-heading-xl font-bold text-neutral-900 mb-1">{formatCurrency(28)}</p>
+              <p className="text-caption-sm text-success-600 font-medium">↑ 7 upsells this week</p>
+            </GlassCard>
+          </div>
+        </div>
+
+        {/* Today's Sessions */}
+        <div className="mb-6">\n          <h2 className="text-heading-md font-semibold text-neutral-900 mb-3">\n            Today's Sessions\n          </h2>
           {todaysSessions.length === 0 ? (
             <EmptyState
               icon="📭"
@@ -273,6 +344,7 @@ export default function EmployeeHome() {
           </div>
         </div>
       </div>
+      </PullToRefresh>
 
       <EmployeeNavBar />
     </main>

@@ -45,7 +45,10 @@ export const OCRSchedule: React.FC<OCRScheduleProps> = ({ onScheduleExtracted })
   const processImage = async (file: File) => {
     setIsProcessing(true);
     try {
-      const { data } = await Tesseract.recognize(file, 'eng', {
+      // Preprocess image for better OCR results
+      const preprocessedImage = await preprocessImage(file);
+      
+      const { data } = await Tesseract.recognize(preprocessedImage, 'eng', {
         logger: (m) => {
           if (m.status === 'recognizing') {
             console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
@@ -54,6 +57,8 @@ export const OCRSchedule: React.FC<OCRScheduleProps> = ({ onScheduleExtracted })
       });
 
       const text = data.text;
+      console.log('OCR Extracted Text:', text); // Debug log
+      
       const parsed = parseScheduleText(text);
       setExtractedSchedule(parsed);
 
@@ -61,50 +66,123 @@ export const OCRSchedule: React.FC<OCRScheduleProps> = ({ onScheduleExtracted })
         toast.success(`Extracted ${parsed.length} schedule entries`);
         onScheduleExtracted?.(parsed);
       } else {
-        toast.error('No schedule entries found in the image');
+        toast.error('No schedule entries found. Try a clearer image with better contrast.');
       }
     } catch (error) {
       console.error('OCR Error:', error);
-      toast.error('Failed to process image. Please try again.');
+      toast.error('Failed to process image. Please ensure the image is clear and well-lit.');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const preprocessImage = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create canvas for preprocessing
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context not available'));
+            return;
+          }
+
+          // Scale up if image is small
+          const scale = Math.max(1, 2000 / Math.max(img.width, img.height));
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+
+          // Draw and enhance image
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Get image data for processing
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+
+          // Convert to grayscale and increase contrast
+          for (let i = 0; i < data.length; i += 4) {
+            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            // Apply threshold for better text recognition
+            const value = avg > 128 ? 255 : 0;
+            data[i] = value;     // R
+            data[i + 1] = value; // G
+            data[i + 2] = value; // B
+          }
+
+          ctx.putImageData(imageData, 0, 0);
+          resolve(canvas.toDataURL());
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const parseScheduleText = (text: string): ScheduleEntry[] => {
     const entries: ScheduleEntry[] = [];
-    const lines = text.split('\n');
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-    // Pattern matching for common schedule formats
-    // Expected formats: "Name: Date Time-Time Role" or "Name|Date|Time|Role"
-    const namePattern = /^[A-Z][a-z]+ (?:[A-Z][a-z]+ )?/;
-    const datePattern = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})/;
-    const timePattern = /(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)\s*[-to]?\s*(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)?/;
-    const rolePattern = /(FRONT_DESK|SHUTTLE|RESTAURANT|HOUSEKEEPING|FrontDesk|Operations|Shipping|BackOffice|Front Office|On Leave)/i;
+    console.log('Parsing lines:', lines); // Debug log
 
-    for (const line of lines) {
-      if (!line.trim()) continue;
+    // More flexible patterns
+    const namePattern = /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/;
+    const datePattern = /(\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?|\d{4}[-/]\d{1,2}[-/]\d{1,2}|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s+\d{1,2})/i;
+    const timePattern = /(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)\s*[-to]?\s*(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)?/i;
+    const rolePattern = /(FRONT[_\s]?DESK|SHUTTLE|RESTAURANT|HOUSEKEEPING|Front\s*Desk|Operations|Shipping|Back\s*Office|Front\s*Office|On\s*Leave)/i;
 
-      const parts = line.split(/[|,\s]{2,}|[\t]/);
-      if (parts.length < 2) continue;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Skip header lines
+      if (/^(name|employee|date|time|shift|role|schedule)/i.test(line)) {
+        continue;
+      }
 
+      // Try to parse the line
       const nameMatch = line.match(namePattern);
       const dateMatch = line.match(datePattern);
       const timeMatch = line.match(timePattern);
       const roleMatch = line.match(rolePattern);
 
-      if (nameMatch && dateMatch) {
-        entries.push({
-          employeeName: nameMatch[0].trim(),
-          date: dateMatch[0],
+      // If we found a name and either a date or time, it's likely a valid entry
+      if (nameMatch && (dateMatch || timeMatch)) {
+        const entry: ScheduleEntry = {
+          employeeName: nameMatch[1].trim(),
+          date: dateMatch ? dateMatch[0] : 'TBD',
           shift: timeMatch
             ? `${timeMatch[1]}${timeMatch[2] ? ` - ${timeMatch[2]}` : ''}`
             : 'TBD',
-          role: roleMatch ? roleMatch[1] : undefined,
-        });
+          role: roleMatch ? roleMatch[1].replace(/\s+/g, '_').toUpperCase() : undefined,
+        };
+
+        // Validate entry has meaningful data
+        if (entry.employeeName.length >= 2) {
+          entries.push(entry);
+          console.log('Parsed entry:', entry); // Debug log
+        }
+      } else if (line.includes('|') || line.includes(',')) {
+        // Try to parse delimited format
+        const parts = line.split(/[|,]/).map(p => p.trim());
+        if (parts.length >= 2) {
+          const nameFromParts = parts[0].match(namePattern);
+          if (nameFromParts && nameFromParts[1].length >= 2) {
+            entries.push({
+              employeeName: nameFromParts[1],
+              date: parts[1] || 'TBD',
+              shift: parts[2] || 'TBD',
+              role: parts[3],
+            });
+          }
+        }
       }
     }
 
+    console.log('Total parsed entries:', entries.length); // Debug log
     return entries;
   };
 

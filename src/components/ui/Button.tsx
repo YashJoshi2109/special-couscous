@@ -19,16 +19,22 @@ export const Button = React.forwardRef<
     danger: 'btn-danger',
   }[variant];
 
+  // Touch-optimized sizes: minimum 44x44 for iOS, 48x48 for Android
   const sizeClass = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-2.5',
-    lg: 'px-6 py-3 text-lg',
+    sm: 'px-3 py-2 text-sm min-h-[40px] min-w-[40px]',
+    md: 'px-4 py-2.5 min-h-[44px] min-w-[44px]',
+    lg: 'px-6 py-3 text-lg min-h-[48px] min-w-[48px]',
   }[size];
 
   return (
     <button
       ref={ref}
-      className={cn(variantClass, sizeClass, className)}
+      className={cn(
+        variantClass, 
+        sizeClass, 
+        'transition-all duration-200 active:scale-95',
+        className
+      )}
       disabled={isLoading || disabled}
       {...props}
     >
