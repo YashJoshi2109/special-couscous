@@ -1,41 +1,204 @@
-// Prisma schema for HotelShift Pro
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
 
 datasource db {
   provider = "postgresql"
 }
 
-generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  output   = "../src/generated/prisma"
-}
-
-// ============================================
-// USER & AUTH
-// ============================================
-
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  email     String   @unique
-  password  String // will hash in production
+  id        String     @id @default(cuid())
+  username  String     @unique
+  email     String     @unique
+  password  String
   firstName String
   lastName  String
-  role      UserRole @default(EMPLOYEE)
+  role      UserRole   @default(EMPLOYEE)
   status    UserStatus @default(ACTIVE)
-  
-  // Relations
-  employee  Employee?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   admin     Admin?
+  employee  Employee?
   sessions  Session[]
   timeLogs  TimeLog[]
   vouchers  Voucher[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([username])
+}
+
+model Employee {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  employeeId  String       @unique
+  phone       String?
+  department  String?
+  hourlyRate  Float
+  bankAccount String?
+  taxId       String?
+  roles       String[]
+  shiftPrefs  String[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeLogs    TimeLog[]
+  voucherLogs VoucherLog[]
+
+  @@index([employeeId])
+  @@index([userId])
+}
+
+model Admin {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  permissions String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Session {
+  id            String        @id @default(cuid())
+  userId        String
+  role          ShiftRole
+  shiftType     ShiftType
+  clockInTime   DateTime
+  clockOutTime  DateTime?
+  status        SessionStatus @default(OPEN)
+  basePayAmount Float?
+  tipsAmount    Float?
+  bonusAmount   Float?
+  dailyTotal    Float?
+  editedBy      String?
+  editedAt      DateTime?
+  editReason    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeLogs      TimeLog[]
+
+  @@index([userId])
+  @@index([clockInTime])
+  @@index([status])
+}
+
+model TimeLog {
+  id         String        @id @default(cuid())
+  userId     String
+  employeeId String
+  sessionId  String
+  startTime  DateTime
+  endTime    DateTime?
+  duration   Int?
+  roomBonus  Int?
+  roomValue  Float?
+  status     TimeLogStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  session    Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([employeeId])
+  @@index([sessionId])
+}
+
+model Voucher {
+  id             String        @id @default(cuid())
+  userId         String
+  cardNumber     String
+  room           String        @db.VarChar(10)
+  passengerCount Int
+  expiryDate     String?
+  bonusAmount    Float
+  status         VoucherStatus @default(ACCEPTED)
+  declineReason  String?
+  declinedAt     DateTime?
+  scannedAt      DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([scannedAt])
+  @@index([status])
+}
+
+model VoucherLog {
+  id         String   @id @default(cuid())
+  employeeId String
+  voucherId  String
+  action     String
+  details    Json
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+}
+
+model PayPeriod {
+  id        String          @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime
+  status    PayPeriodStatus @default(OPEN)
+  finalized DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([startDate])
+  @@index([status])
+}
+
+model PayEstimate {
+  id             String    @id @default(cuid())
+  employeeId     String
+  payPeriodId    String
+  basePay        Float
+  tips           Float
+  roomBonus      Float
+  voucherBonus   Float
+  soldOutBonus   Float
+  totalEstimated Float
+  isFinalized    Boolean   @default(false)
+  finalizedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([employeeId, payPeriodId])
+  @@index([employeeId])
+  @@index([payPeriodId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  userId     String
+  adminId    String?
+  entityType String
+  entityId   String
+  changes    Json
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+model AppConfig {
+  id                    String   @id @default(cuid())
+  enableVoucherScanning Boolean  @default(true)
+  enableOfflineMode     Boolean  @default(true)
+  enableMultiSession    Boolean  @default(true)
+  baseSoldOutBonus      Float    @default(5.0)
+  roomUpsellRate        Float    @default(1.5)
+  voucherBonusRate      Float    @default(0.25)
+  updatedAt             DateTime @updatedAt
 }
 
 enum UserRole {
@@ -48,93 +211,6 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
-}
-
-// ============================================
-// EMPLOYEE & ADMIN
-// ============================================
-
-model Employee {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  employeeId   String   @unique // HR ID
-  phone        String?
-  department   String?
-  
-  // Pay info
-  hourlyRate   Float
-  bankAccount  String?
-  taxId        String?
-  
-  // Preferences
-  roles        String[] // ["FRONT_DESK", "SHUTTLE"]
-  shiftPrefs   String[] // ["MORNING", "EVENING", "NIGHT"]
-  
-  // Relations
-  timeLogs     TimeLog[]
-  voucherLogs  VoucherLog[]
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([employeeId])
-  @@index([userId])
-}
-
-model Admin {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  permissions String[] // ["VIEW_ALL", "EDIT_TIME", "OVERRIDE_VOUCHER", etc.]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-}
-
-// ============================================
-// TIME TRACKING
-// ============================================
-
-model Session {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  role        ShiftRole // FRONT_DESK or SHUTTLE
-  shiftType   ShiftType // MORNING, EVENING, NIGHT, SHUTTLE
-  
-  clockInTime   DateTime
-  clockOutTime  DateTime?
-  
-  status      SessionStatus @default(OPEN)
-  
-  // Earnings
-  basePayAmount Float?
-  tipsAmount    Float?
-  bonusAmount   Float?
-  
-  // Multi-session shuttle tracking
-  dailyTotal    Float? // For shuttle multi-session summary
-  
-  // Admin override/edit tracking
-  editedBy      String?
-  editedAt      DateTime?
-  editReason    String?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  timeLogs      TimeLog[]
-
-  @@index([userId])
-  @@index([clockInTime])
-  @@index([status])
 }
 
 enum ShiftRole {
@@ -150,41 +226,11 @@ enum ShiftType {
 }
 
 enum SessionStatus {
-  OPEN      // Currently clocked in
-  COMPLETED // Clocked out, finalized
-  PENDING_REVIEW // Awaiting admin review
-  EDITED    // Modified by admin
-  CONFLICTED // Overlapping sessions
-}
-
-model TimeLog {
-  id          String  @id @default(cuid())
-  userId      String
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
-  sessionId   String
-  session     Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
-  // Raw time entry
-  startTime   DateTime
-  endTime     DateTime?
-  duration    Int? // minutes
-  
-  // Modifiers
-  roomBonus   Int? // count of rooms/passengers
-  roomValue   Float?
-  
-  status      TimeLogStatus @default(PENDING)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-  @@index([employeeId])
-  @@index([sessionId])
+  OPEN
+  COMPLETED
+  PENDING_REVIEW
+  EDITED
+  CONFLICTED
 }
 
 enum TimeLogStatus {
@@ -194,152 +240,14 @@ enum TimeLogStatus {
   ADJUSTED
 }
 
-// ============================================
-// VOUCHERS & SCANNING
-// ============================================
-
-model Voucher {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Scanned data
-  cardNumber String // masked: ****1234
-  room      String   @db.VarChar(10)
-  passengerCount Int
-  expiryDate String? // Card expiry date (MM/YY format)
-  
-  // Bonus tracking
-  bonusAmount Float
-  status      VoucherStatus @default(ACCEPTED)
-  
-  // Decline reason if applicable
-  declineReason String?
-  declinedAt    DateTime?
-  
-  scannedAt     DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([userId])
-  @@index([scannedAt])
-  @@index([status])
-}
-
 enum VoucherStatus {
   ACCEPTED
   DECLINED
   PENDING_REVIEW
 }
 
-model VoucherLog {
-  id          String  @id @default(cuid())
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
-  voucherId   String
-  action      String // "SCAN", "DECLINE", "ADJUST"
-  details     Json   // flexible field for meta
-  
-  createdAt   DateTime @default(now())
-
-  @@index([employeeId])
-}
-
-// ============================================
-// PAYROLL & ESTIMATION
-// ============================================
-
-model PayPeriod {
-  id          String   @id @default(cuid())
-  
-  startDate   DateTime
-  endDate     DateTime
-  
-  status      PayPeriodStatus @default(OPEN)
-  finalized   DateTime?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([startDate])
-  @@index([status])
-}
-
 enum PayPeriodStatus {
-  OPEN      // Still collecting hours/vouchers
-  LOCKED    // No more edits allowed
-  FINALIZED // Payroll generated
-}
-
-model PayEstimate {
-  id          String   @id @default(cuid())
-  
-  employeeId  String
-  payPeriodId String
-  
-  // Breakdown
-  basePay     Float // hours * rate
-  tips        Float
-  roomBonus   Float
-  voucherBonus Float
-  soldOutBonus Float
-  
-  totalEstimated Float
-  
-  // Status
-  isFinalized Boolean @default(false)
-  finalizedAt DateTime?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([employeeId, payPeriodId])
-  @@index([employeeId])
-  @@index([payPeriodId])
-}
-
-// ============================================
-// AUDIT & COMPLIANCE
-// ============================================
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  
-  action    String   // "CLOCK_IN", "CLOCK_OUT", "EDIT_TIME", "DECLINE_VOUCHER", etc.
-  userId    String
-  adminId   String?  // if action taken by admin
-  
-  entityType String  // "SESSION", "VOUCHER", "PAYSTUB"
-  entityId  String
-  
-  changes   Json     // { field: { before, after } }
-  reason    String?  // Why the change was made
-  
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([action])
-}
-
-// ============================================
-// APP CONFIG & SETTINGS
-// ============================================
-
-model AppConfig {
-  id            String @id @default(cuid())
-  
-  // Feature flags
-  enableVoucherScanning Boolean @default(true)
-  enableOfflineMode     Boolean @default(true)
-  enableMultiSession    Boolean @default(true)
-  
-  // Pay rules
-  baseSoldOutBonus      Float @default(5.0)
-  roomUpsellRate        Float @default(1.5)
-  voucherBonusRate      Float @default(0.25)
-  
-  // Config
-  updatedAt             DateTime @updatedAt
+  OPEN
+  LOCKED
+  FINALIZED
 }
